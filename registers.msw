@@ -1,0 +1,40 @@
+[rv.set_x_raw [
+	([rv.set_x_raw.is_x0= (== $1 0)] $1 $2)
+]]
+	[rv.set_x_raw.is_x0=true []]
+	[rv.set_x_raw.is_x0=false [
+		(set x [
+			(slice .x 0 (* $1 8))
+			$2
+			(slice .x (* (+ $1 1) 8))
+		])
+	]]
+
+[rv.set_x [
+	(rv.set_x_raw $1 (rv.hex $2 4))
+]]
+
+[rv.get_x_raw [
+	(slice .x (* $1 8) (* (+ $1 1) 8))
+]]
+
+[rv.get_x [
+	(int (rv.get_x_raw $1) 16)
+]]
+
+; print all the registers in a nice way, like:
+;  x1: 0x00000000  0
+;  x2: 0x00100000  1048576
+;  x3: 0x00000000  0
+; ...
+[rv.dump_x [
+	(set i 1)
+	,(repeat 31 '(rv.dump_x.loop))
+]]
+
+[rv.dump_x.loop [
+	(repeat (- 2 (len .i)) " ") "x" .i ": "
+	"0x" (rv.get_x_raw .i) "  " (rv.get_x .i) "\n"
+
+	(set i (int (+ .i 1)))
+]]

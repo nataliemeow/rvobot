@@ -1,0 +1,273 @@
+; you will need to be familiar with the RISC-V ISA or at least something else that's similar to understand this.
+; you have been warned.
+;
+; ## overview
+;
+; the basic flow of the program is as follows:
+;
+; - rv.init initializes the registers ('x'), PC and memory.
+; - rv.exec takes a memory state, executes the next instruction and returns a new memory state.
+;
+; see registers.msw and memory.msw for more detail.
+
+#out_json
+
+(#set debug)
+
+; discard arguments
+[rv.void []]
+
+(#include_merge "registers.msw")
+(#include_merge "memory.msw")
+(#include_merge "init_mem.msw")
+
+
+[rv.swap [
+	(replace $1 @"^(..)$|^(..)(..)$|^(..)(..)(..)(..)$" @"\g<1>\g<3>\g<2>\g<7>\g<6>\g<5>\g<4>")
+]]
+
+; $1: number, $2: size
+[rv.hex [
+	(slice (hex (+ (** 256 $2) $1)) [- (* $2 2)])
+]]
+
+; $1: number, $2: bitwidth-1
+[rv.negate [
+	(- (** 2 $2) $1)
+]]
+
+[rv.unbin_s [
+	(-
+		(int (slice $1 1) 2)
+		(if (== (slice $1 0 1) 1) (** 2 $2) 0)
+	)
+]]
+
+[rv.bin32 [
+	(slice (bin (+ 0x100000000 $1)) -32)
+]]
+
+[rv.slice_bin32 [
+	(slice $1 (- 31 $2) (- 32 $3))
+]]
+
+[rv.init [
+	; registers
+	(set x (repeat 32 00000000))
+	; entry point
+	(set pc 0x1004)
+	; ra - jump here when _start returns
+	(rv.set_x 1 0xdeadbee0)
+	; sp
+	(rv.set_x 2 0x1000)
+
+	(set mem (zlib.decompress [(rv.init_mem.0)]))
+]]
+
+[rv.next [
+	(set pc (+ .pc 4))
+]]
+
+[rv.log [
+	"\n" (repeat (- 6 (len (hex .pc))) " ") (hex .pc) ":    " .insn_hex "    " $1
+]]
+
+[rv.log_i_fmt [
+	(rv.log [
+		$1 " x" .xd ", x" .xs1 ", " (hex .imm)
+	])
+]]
+
+[rv.exec [
+	([rv.exec.halt= (== (int .pc) 0xdeadbee0)])
+]]
+	[rv.exec.halt=true [
+		(#if debug [
+			"\nprogram jumped to 0xdeadbee0 - halt"
+		])
+	]]
+[rv.exec.halt=false [
+	(set insn_hex (rv.mem_get_raw .pc 4))
+	(set insn (rv.bin32 (int .insn_hex 16)))
+	([rv.exec.opcode= (int (rv.slice_bin32 .insn 6 2) 2)])
+]]
+	; addi, slti, sltiu, xori, ori, andi 
+	[rv.exec.opcode=4 [
+		(set imm (rv.unbin_s (rv.slice_bin32 .insn 31 20) 11))
+		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+
+		([rv.exec.opcode=4.funct3= .funct3])
+		
+		(rv.next)
+	]]
+		; addi
+		[rv.exec.opcode=4.funct3=0 [
+			(#if debug (rv.log_i_fmt "addi "))
+
+			(rv.set_x .xd (+ (rv.get_x .xs1) .imm))
+		]]
+
+	; lui
+	[rv.exec.opcode=13 [
+		(set imm (rv.slice_bin32_raw .insn 31 12))
+		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+		(#if debug [
+			(rv.log [
+				"lui   x" .xd ", " (hex (int .imm 2))
+			])
+		])
+
+		(rv.set_x .xd (int [.imm "000000000000"] 2))
+		(rv.next)
+	]]
+
+	[rv.sl_funct3_size.0 1]
+	[rv.sl_funct3_size.1 2]
+	[rv.sl_funct3_size.2 4]
+	[rv.sl_funct3_size.4 2]
+	[rv.sl_funct3_size.5 4]
+	[rv.sl_funct3_signed.0 true]
+	[rv.sl_funct3_signed.1 true]
+	[rv.sl_funct3_signed.2 true]
+	[rv.sl_funct3_signed.4 false]
+	[rv.sl_funct3_signed.5 false]
+	[rv.sl_funct3_mnem.0 "b "]
+	[rv.sl_funct3_mnem.1 "h "]
+	[rv.sl_funct3_mnem.2 "w "]
+	[rv.sl_funct3_mnem.4 "bu"]
+	[rv.sl_funct3_mnem.5 "hu"]
+
+	; lb, lbu, lh, lhu, lw
+	[rv.exec.opcode=0 [
+		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+		(set imm (rv.unbin_s (rv.slice_bin32_raw .insn 31 20) 11))
+		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+		(#if debug [
+			(rv.log [
+				"l" ([rv.sl_funct3_mnem. .funct3]) "   "
+				"x" .xd ", " (hex .imm) "(x" .xs1 ")"
+			])
+		])
+
+		(rv.set_x .xd (rv.mem_get
+			(+ (rv.get_x .xs1) .imm)
+			.size
+		))
+		(rv.next)
+	]]
+
+	; sb, sh, sw
+	[rv.exec.opcode=8 [
+		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+		(set imm (rv.unbin_s [
+			(rv.slice_bin32_raw .insn 31 25)
+			(rv.slice_bin32_raw .insn 11 7)
+		] 11))
+		(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
+		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+		(#if debug [
+			(rv.log [
+				"s" ([rv.sl_funct3_mnem. .funct3]) "   "
+				"x" .xs2 ", " (hex .imm) "(x" .xs1 ")"
+			])
+		])
+
+		(set size ([rv.sl_funct3_size. .funct3]))
+		(rv.mem_set_raw
+			(+ (rv.get_x .xs1) .imm)
+			.size
+			(slice (rv.get_x_raw .xs2) (* .size -2))
+		)
+		(rv.next)
+	]]
+
+	; beq, bne, blt, bge, bltu, bgeu
+	[rv.exec.opcode=24 [
+		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+		(set imm (rv.unbin_s [
+			(rv.slice_bin32_raw .insn 31 31)
+			(rv.slice_bin32_raw .insn 7 7)
+			(rv.slice_bin32_raw .insn 30 25)
+			(rv.slice_bin32_raw .insn 11 8)
+			0
+		] 12))
+		(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
+		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+
+		(#if debug [
+			(rv.log [
+				"b" ([rv.b_funct3_mnem. .funct3]) "  "
+				"x" .xs1 ", x" .xs2 ", " (hex (+ .pc .imm))
+			])
+		])
+		
+		,(if (
+			[rv.exec.opcode=24.funct3= .funct3]
+			(rv.get_x .xs1)
+			(rv.get_x .xs2)
+		) '[
+			(+ .pc .imm)
+		] '[
+			(rv.next)
+		])
+	]]
+		; beq
+		[rv.exec.opcode=24.funct3=0 (== $1 $2)]
+		; bne
+		[rv.exec.opcode=24.funct3=1 (not (== $1 $2))]
+		; blt
+		[rv.exec.opcode=24.funct3=4 (< (rv.unbin_s (rv.bin32 $1) 31) (rv.unbin_s (rv.bin32 $2) 31))]
+		; bge
+		[rv.exec.opcode=24.funct3=5 (not (< (rv.unbin_s (rv.bin32 $1) 31) (rv.unbin_s (rv.bin32 $2) 31)))]
+		; bltu
+		[rv.exec.opcode=24.funct3=6 (< (int $1 2) (int $2 2))]
+		; bgeu
+		[rv.exec.opcode=24.funct3=6 (not (< (int $1 2) (int $2 2)))]
+
+	[rv.b_funct3_mnem.0 "eq "]
+	[rv.b_funct3_mnem.1 "ne "]
+	[rv.b_funct3_mnem.4 "lt "]
+	[rv.b_funct3_mnem.5 "ge "]
+	[rv.b_funct3_mnem.6 "ltu"]
+	[rv.b_funct3_mnem.7 "geu"]
+
+	; jalr
+	[rv.exec.opcode=25 [
+		(set imm (rv.unbin_s (rv.slice_bin32_raw .insn 31 20) 11))
+		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+		(#if debug [
+			(rv.log [
+				"jalr  x" .xd ", " (int .imm) "(x" .xs1 ")"
+			])
+		])
+
+		(rv.set_x .xd (+ .pc 4))
+		; pc = (rs1 + imm) & ~1
+		(set pc
+			[(slice (+ (rv.get_x .xs1) .imm) 0 -1) 0]
+		)
+	]]
+
+	; jal
+	[rv.exec.opcode=27 [
+		(set xd (int (rv.slice_bin32_raw .insn 11 7) 2))
+		(set imm (rv.unbin_s [
+			(rv.slice_bin32_raw .insn 31 31)
+			(rv.slice_bin32_raw .insn 19 12)
+			(rv.slice_bin32_raw .insn 20 20)
+			(rv.slice_bin32_raw .insn 30 21)
+			0
+		] 20))
+		(#if debug [
+			(rv.log [
+				"jal   x" .xd ", " (hex (+ .pc .imm))
+			])
+		])
+
+		(rv.set_x .xd (+ .pc 4))
+		(set pc (+ .pc .imm))
+	]]

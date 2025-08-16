@@ -1,0 +1,36 @@
+; $1: address
+; $2: size (1 | 2 | 4)
+; $3: new value
+
+[rv.mem_get_raw [
+	(rv.swap (slice .mem (* $1 2) (* (+ $1 $2) 2)))
+]]
+
+[rv.mem_get [
+	(int (rv.mem_get_raw $1 $2) 16)
+]]
+
+[rv.mem_set_raw [
+	(set mem [
+		(slice .mem 0 (* $1 2))
+		(rv.swap $3)
+		(slice .mem (* (+ $1 $2) 2))
+	])
+]]
+
+[rv.mem_set [
+	(rv.mem_set_raw $1 $2 (rv.hex $3 $2))
+]]
+
+[rv.mem_get_str [
+	(set addr $1)
+	,(repeat $2 '(rv.mem_get_str.loop))
+]]
+
+[rv.mem_get_str.loop [
+	(set char (rv.mem_get .addr 1))
+	,(if (== .char 0) [] '[
+		(chr .char) 
+		(set addr (+ .addr 1))
+	])
+]]
