@@ -1,0 +1,72 @@
+; addi, slti, sltiu, xori, ori, andi
+
+[rv.exec.opcode=4 [
+	(set imm (rv.slice_bin32 .insn 31 20))
+	(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+	(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+
+	([rv.exec.opcode=4.funct3= .funct3])
+	
+	(rv.next)
+]]
+[rv.exec.opcode=4.log [
+	(rv.log [
+		$1 " x" .xd ", x" .xs1 ", " (hex (rv.unbin_s .imm 11))
+	])
+]]
+	; addi
+	[rv.exec.opcode=4.funct3=0 [
+		(#if debug (rv.exec.opcode=4.log "addi "))
+		(rv.set_x .xd (+
+			(rv.get_x .xs1)
+			(rv.unbin_s .imm 11)
+		))
+	]]
+	; slti
+	[rv.exec.opcode=4.funct3=2 [
+		(#if debug (rv.exec.opcode=4.log "slti "))
+		(rv.set_x .xd
+			(if (less
+				(rv.unbin_s (rv.bin32 (rv.get_x .xs1)) 11)
+				(rv.unbin_s .imm)
+			) 1 0)
+		)
+	]]
+	; sltiu
+	[rv.exec.opcode=4.funct3=3 [
+		(#if debug (rv.exec.opcode=4.log "sltiu"))
+		(rv.set_x .xd
+			(if (less (rv.get_x .xs1) (int .imm 2)) 1 0)
+		)
+	]]
+	; xori
+	[rv.exec.opcode=4.funct3=4 [
+		(#if debug (rv.exec.opcode=4.log "xori "))
+		(rv.set_x .xd
+			(int (rv.xor
+				(rv.bin32 (rv.get_x .xs1))
+				[00000000000000000000 .imm]
+			) 2)
+		)
+	]]
+	; ori
+	[rv.exec.opcode=4.funct3=6 [
+		(#if debug (rv.exec.opcode=4.log "ori  "))
+		(rv.set_x .xd
+			(int (rv.or
+				(rv.bin32 (rv.get_x .xs1))
+				[00000000000000000000 .imm]
+			) 2)
+		)
+	]]
+	; andi
+	[rv.exec.opcode=4.funct3=7 [
+		(#if debug (rv.exec.opcode=4.log "andi "))
+		(rv.set_x .xd
+			(int (rv.and
+				(rv.bin32 (rv.get_x .xs1))
+				[00000000000000000000 .imm]
+			) 2)
+		)
+	]]

@@ -1,0 +1,25 @@
+; add, sub
+
+[rv.exec.opcode=12 [
+	(set funct7 (int (rv.slice_bin32 .insn 31 25) 2))
+	(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
+	(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+	(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+
+	([rv.exec.opcode=12.funct3= .funct3])
+	(rv.next)
+]]
+[rv.exec.opcode=12.log [
+	(rv.log [
+		$1 " x" .xd ", x" .xs1 ", x" .xs2
+	])
+]]
+	; add, sub
+	[rv.exec.opcode=12.funct3=0 [
+		(#if debug (rv.exec.opcode=12.log "add  "))
+		(rv.set_x .xd (
+			(if (== .funct7 0) add subtract)
+			(rv.get_x .xs1) (rv.get_x .xs2)
+		))
+	]]

@@ -1,0 +1,20 @@
+; jal
+
+[rv.exec.opcode=27 [
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+	(set imm (rv.unbin_s [
+		(rv.slice_bin32 .insn 31 31)
+		(rv.slice_bin32 .insn 19 12)
+		(rv.slice_bin32 .insn 20 20)
+		(rv.slice_bin32 .insn 30 21)
+		0
+	] 20))
+	(#if debug [
+		(rv.log [
+			"jal   x" .xd ", " (hex (+ .pc .imm))
+		])
+	])
+
+	(rv.set_x .xd (+ .pc 4))
+	(set pc (+ .pc .imm))
+]]

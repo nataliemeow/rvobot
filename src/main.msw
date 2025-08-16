@@ -1,0 +1,106 @@
+; you will need to be familiar with the RISC-V ISA or at least something else that's similar to understand this.
+; you have been warned.
+;
+; ## overview
+;
+; the basic flow of the program is as follows:
+;
+; - rv.init initializes the registers ('x'), PC and memory.
+; - rv.exec takes a memory state, executes the next instruction and returns a new memory state.
+;
+; see registers.msw and memory.msw for more detail.
+
+#out_json
+
+(#set debug)
+
+; discard arguments
+[rv.void []]
+
+(#include_merge "registers.msw")
+(#include_merge "memory.msw")
+(#include_merge "init_mem.msw")
+
+
+[rv.swap [
+	(replace $1 @"^(..)$|^(..)(..)$|^(..)(..)(..)(..)$" @"\g<1>\g<3>\g<2>\g<7>\g<6>\g<5>\g<4>")
+]]
+
+; $1: number, $2: size
+[rv.hex [
+	(slice (hex (+ (** 256 $2) $1)) [- (* $2 2)])
+]]
+
+; $1: number, $2: bitwidth-1
+[rv.negate [
+	(- (** 2 $2) $1)
+]]
+
+; $1: number, $2: bitwidth-1
+[rv.unbin_s [
+	(-
+		(int (slice $1 1) 2)
+		(if (== (slice $1 0 1) 1) (** 2 $2) 0)
+	)
+]]
+
+[rv.bin32 [
+	(slice (bin (+ 0x100000000 $1)) -32)
+]]
+
+[rv.slice_bin32 [
+	(slice $1 (- 31 $2) (- 32 $3))
+]]
+
+; ?????
+[rv.interweave [
+	(replace [$1 $2] @"^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)$" @"\g<1>\g<33>x\g<2>\g<34>x\g<3>\g<35>x\g<4>\g<36>x\g<5>\g<37>x\g<6>\g<38>x\g<7>\g<39>x\g<8>\g<40>x\g<9>\g<41>x\g<10>\g<42>x\g<11>\g<43>x\g<12>\g<44>x\g<13>\g<45>x\g<14>\g<46>x\g<15>\g<47>x\g<16>\g<48>x\g<17>\g<49>x\g<18>\g<50>x\g<19>\g<51>x\g<20>\g<52>x\g<21>\g<53>x\g<22>\g<54>x\g<23>\g<55>x\g<24>\g<56>x\g<25>\g<57>x\g<26>\g<58>x\g<27>\g<59>x\g<28>\g<60>x\g<29>\g<61>x\g<30>\g<62>x\g<31>\g<63>x\g<32>\g<64>x")
+]]
+
+[rv.or [
+	(replace (replace (replace (rv.interweave $1 $2) @"1.x" @"1") [@"." @"1x"] @"1") @"00x" @"0")
+]]
+
+[rv.and [
+	(replace (replace (replace (rv.interweave $1 $2) @"0.x" @"0") [@"." @"0x"] @"0") @"11x" @"1")
+]]
+
+[rv.xor [
+	(replace (replace (replace (rv.interweave $1 $2) @"01x" @"1") @"10x" @"1") [@"." @"." @"x"] @"0")
+]]
+
+[rv.init [
+	; registers
+	(set x (repeat 32 00000000))
+	; entry point
+	(set pc 0x1004)
+	; ra - jump here when _start returns
+	(rv.set_x 1 0xdeadbee0)
+	; sp
+	(rv.set_x 2 0x1000)
+
+	(set mem (zlib.decompress [(rv.init_mem.0)]))
+]]
+
+[rv.next [
+	(set pc (+ .pc 4))
+]]
+
+[rv.log [
+	"\n" (repeat (- 6 (len (hex .pc))) " ") (hex .pc) ":    " .insn_hex "    " $1
+]]
+
+[rv.exec [
+	([rv.exec.halt= (== (int .pc) 0xdeadbee0)])
+]]
+	[rv.exec.halt=true [
+		(#if debug [
+			"\nprogram jumped to 0xdeadbee0 - halt"
+		])
+	]]
+	[rv.exec.halt=false [
+		(set insn_hex (rv.mem_get_raw .pc 4))
+		(set insn (rv.bin32 (int .insn_hex 16)))
+		([rv.exec.opcode= (int (rv.slice_bin32 .insn 6 2) 2)])
+	]]
+		(#include_merge "opcodes/*.msw")

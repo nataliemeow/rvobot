@@ -1,0 +1,18 @@
+; jalr
+
+[rv.exec.opcode=25 [
+	(set imm (rv.unbin_s (rv.slice_bin32 .insn 31 20) 11))
+	(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+	(#if debug [
+		(rv.log [
+			"jalr  x" .xd ", " (int .imm) "(x" .xs1 ")"
+		])
+	])
+
+	(rv.set_x .xd (+ .pc 4))
+	; pc = (rs1 + imm) & ~1
+	(set pc
+		[(slice (+ (rv.get_x .xs1) .imm) 0 -1) 0]
+	)
+]]

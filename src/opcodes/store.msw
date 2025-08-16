@@ -1,0 +1,25 @@
+; sb, sh, sw
+
+[rv.exec.opcode=8 [
+	(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
+	(set imm (rv.unbin_s [
+		(rv.slice_bin32 .insn 31 25)
+		(rv.slice_bin32 .insn 11 7)
+	] 11))
+	(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
+	(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
+	(#if debug [
+		(rv.log [
+			"s" ([rv.sl_funct3_mnem. .funct3]) "   "
+			"x" .xs2 ", " (hex .imm) "(x" .xs1 ")"
+		])
+	])
+
+	(set size ([rv.sl_funct3_size. .funct3]))
+	(rv.mem_set_raw
+		(+ (rv.get_x .xs1) .imm)
+		.size
+		(slice (rv.get_x_raw .xs2) (* .size -2))
+	)
+	(rv.next)
+]]

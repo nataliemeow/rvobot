@@ -1,0 +1,14 @@
+; lui
+
+[rv.exec.opcode=13 [
+	(set imm (rv.slice_bin32_raw .insn 31 12))
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+	(#if debug [
+		(rv.log [
+			"lui   x" .xd ", " (hex (int .imm 2))
+		])
+	])
+
+	(rv.set_x .xd (int [.imm "000000000000"] 2))
+	(rv.next)
+]]
