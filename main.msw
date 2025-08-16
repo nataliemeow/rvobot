@@ -65,7 +65,7 @@
 ]]
 
 [rv.xor [
-	(replace (replace (replace (rv.interweave $1 $2) @"01x" @"1") @"10x" @"1") @"..x" @"0")
+	(replace (replace (replace (rv.interweave $1 $2) @"01x" @"1") @"10x" @"1") [@"." @"." @"x"] @"0")
 ]]
 
 [rv.init [
