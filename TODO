@@ -1,29 +1,29 @@
 [x] lui
 [ ] auipc
-[ ] jal
-[ ] jalr
-[ ] beq
-[ ] bne
-[ ] blt
-[ ] bge
-[ ] bltu
-[ ] bgeu
-[ ] lb
-[ ] lh
+[x] jal
+[x] jalr
+[x] beq
+[x] bne
+[x] blt
+[x] bge
+[x] bltu
+[x] bgeu
+[x] lb
+[x] lh
 [x] lw
 [ ] lbu
 [ ] lhu
-[ ] sb
-[ ] sh
+[x] sb
+[x] sh
 [x] sw
 [x] addi
-[ ] slti
-[ ] sltiu
-[ ] xori
-[ ] ori
-[ ] andi
-[ ] add
-[ ] sub
+[x] slti
+[x] sltiu
+[x] xori
+[x] ori
+[x] andi
+[x] add
+[x] sub
 [ ] sll
 [ ] slt
 [ ] sltu
