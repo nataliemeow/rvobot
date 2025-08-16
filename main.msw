@@ -142,7 +142,7 @@
 	; lb, lbu, lh, lhu, lw
 	[rv.exec.opcode=0 [
 		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
-		(set imm (rv.unbin_s (rv.slice_bin32_raw .insn 31 20) 11))
+		(set imm (rv.unbin_s (rv.slice_bin32 .insn 31 20) 11))
 		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
 		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
 		(#if debug [
@@ -163,8 +163,8 @@
 	[rv.exec.opcode=8 [
 		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
 		(set imm (rv.unbin_s [
-			(rv.slice_bin32_raw .insn 31 25)
-			(rv.slice_bin32_raw .insn 11 7)
+			(rv.slice_bin32 .insn 31 25)
+			(rv.slice_bin32 .insn 11 7)
 		] 11))
 		(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
 		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
@@ -188,10 +188,10 @@
 	[rv.exec.opcode=24 [
 		(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
 		(set imm (rv.unbin_s [
-			(rv.slice_bin32_raw .insn 31 31)
-			(rv.slice_bin32_raw .insn 7 7)
-			(rv.slice_bin32_raw .insn 30 25)
-			(rv.slice_bin32_raw .insn 11 8)
+			(rv.slice_bin32 .insn 31 31)
+			(rv.slice_bin32 .insn 7 7)
+			(rv.slice_bin32 .insn 30 25)
+			(rv.slice_bin32 .insn 11 8)
 			0
 		] 12))
 		(set xs2 (int (rv.slice_bin32 .insn 24 20) 2))
@@ -236,7 +236,7 @@
 
 	; jalr
 	[rv.exec.opcode=25 [
-		(set imm (rv.unbin_s (rv.slice_bin32_raw .insn 31 20) 11))
+		(set imm (rv.unbin_s (rv.slice_bin32 .insn 31 20) 11))
 		(set xs1 (int (rv.slice_bin32 .insn 19 15) 2))
 		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
 		(#if debug [
@@ -254,12 +254,12 @@
 
 	; jal
 	[rv.exec.opcode=27 [
-		(set xd (int (rv.slice_bin32_raw .insn 11 7) 2))
+		(set xd (int (rv.slice_bin32 .insn 11 7) 2))
 		(set imm (rv.unbin_s [
-			(rv.slice_bin32_raw .insn 31 31)
-			(rv.slice_bin32_raw .insn 19 12)
-			(rv.slice_bin32_raw .insn 20 20)
-			(rv.slice_bin32_raw .insn 30 21)
+			(rv.slice_bin32 .insn 31 31)
+			(rv.slice_bin32 .insn 19 12)
+			(rv.slice_bin32 .insn 20 20)
+			(rv.slice_bin32 .insn 30 21)
 			0
 		] 20))
 		(#if debug [
