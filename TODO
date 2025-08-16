@@ -1,0 +1,45 @@
+[x] lui
+[ ] auipc
+[ ] jal
+[ ] jalr
+[ ] beq
+[ ] bne
+[ ] blt
+[ ] bge
+[ ] bltu
+[ ] bgeu
+[ ] lb
+[ ] lh
+[x] lw
+[ ] lbu
+[ ] lhu
+[ ] sb
+[ ] sh
+[x] sw
+[x] addi
+[ ] slti
+[ ] sltiu
+[ ] xori
+[ ] ori
+[ ] andi
+[ ] add
+[ ] sub
+[ ] sll
+[ ] slt
+[ ] sltu
+[ ] xor
+[ ] srl
+[ ] sra
+[ ] or
+[ ] and
+[ ] fence
+[ ] ecall
+[ ] ebreak
+[ ] mul
+[ ] mulh
+[ ] mulhsu
+[ ] mulhu
+[ ] div
+[ ] divu
+[ ] rem
+[ ] remu
