@@ -40,7 +40,7 @@
 	; bltu
 	[rv.exec.opcode=24.funct3=6 (< (int $1 2) (int $2 2))]
 	; bgeu
-	[rv.exec.opcode=24.funct3=6 (not (< (int $1 2) (int $2 2)))]
+	[rv.exec.opcode=24.funct3=7 (not (< (int $1 2) (int $2 2)))]
 
 [rv.b_funct3_mnem.0 "eq "]
 [rv.b_funct3_mnem.1 "ne "]
