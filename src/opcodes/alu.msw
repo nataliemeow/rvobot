@@ -17,7 +17,11 @@
 ]]
 	; add, sub
 	[rv.exec.opcode=12.funct3=0 [
-		(#if debug (rv.exec.opcode=12.log "add  "))
+		(#if debug
+			(rv.exec.opcode=12.log
+				(if (== .funct7 0) "add  " "sub  ")
+			)
+		)
 		(rv.set_x .xd (
 			(if (== .funct7 0) add subtract)
 			(rv.get_x .xs1) (rv.get_x .xs2)
