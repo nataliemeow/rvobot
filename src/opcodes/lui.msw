@@ -1,7 +1,7 @@
 ; lui
 
 [rv.exec.opcode=13 [
-	(set imm (rv.slice_bin32_raw .insn 31 12))
+	(set imm (rv.slice_bin32 .insn 31 12))
 	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
 	(#if debug [
 		(rv.log [
