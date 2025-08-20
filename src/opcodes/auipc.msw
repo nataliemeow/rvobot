@@ -1,0 +1,17 @@
+; auipc
+
+[rv.exec.opcode=5 [
+	(set imm (rv.slice_bin32 .insn 31 12))
+	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
+	(#if debug [
+		(rv.log [
+			"auipc x" .xd ", " (hex (int .imm 2))
+		])
+	])
+
+	(rv.set_x .xd (+
+		.pc
+		(rv.unbin_s [.imm "000000000000"] 19)
+	))
+	(rv.next)
+]]
