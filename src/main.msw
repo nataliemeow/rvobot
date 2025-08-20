@@ -54,32 +54,54 @@
 
 ; ?????
 [rv.interweave [
-	(replace [$1 $2] @"^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)$" @"\g<1>\g<33>x\g<2>\g<34>x\g<3>\g<35>x\g<4>\g<36>x\g<5>\g<37>x\g<6>\g<38>x\g<7>\g<39>x\g<8>\g<40>x\g<9>\g<41>x\g<10>\g<42>x\g<11>\g<43>x\g<12>\g<44>x\g<13>\g<45>x\g<14>\g<46>x\g<15>\g<47>x\g<16>\g<48>x\g<17>\g<49>x\g<18>\g<50>x\g<19>\g<51>x\g<20>\g<52>x\g<21>\g<53>x\g<22>\g<54>x\g<23>\g<55>x\g<24>\g<56>x\g<25>\g<57>x\g<26>\g<58>x\g<27>\g<59>x\g<28>\g<60>x\g<29>\g<61>x\g<30>\g<62>x\g<31>\g<63>x\g<32>\g<64>x")
+	(replace [$1 $2] @"^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)$" @"x\g<1>\g<33>x\g<2>\g<34>x\g<3>\g<35>x\g<4>\g<36>x\g<5>\g<37>x\g<6>\g<38>x\g<7>\g<39>x\g<8>\g<40>x\g<9>\g<41>x\g<10>\g<42>x\g<11>\g<43>x\g<12>\g<44>x\g<13>\g<45>x\g<14>\g<46>x\g<15>\g<47>x\g<16>\g<48>x\g<17>\g<49>x\g<18>\g<50>x\g<19>\g<51>x\g<20>\g<52>x\g<21>\g<53>x\g<22>\g<54>x\g<23>\g<55>x\g<24>\g<56>x\g<25>\g<57>x\g<26>\g<58>x\g<27>\g<59>x\g<28>\g<60>x\g<29>\g<61>x\g<30>\g<62>x\g<31>\g<63>x\g<32>\g<64>")
 ]]
 
 [rv.or [
-	(replace (replace (replace (rv.interweave $1 $2) @"1.x" @"1") [@"." @"1x"] @"1") @"00x" @"0")
+	(replace (rv.interweave $1 $2) @"x1." @"1" @"x.1" @"1" @"x00" @"0")
 ]]
 
 [rv.and [
-	(replace (replace (replace (rv.interweave $1 $2) @"0.x" @"0") [@"." @"0x"] @"0") @"11x" @"1")
+	(replace (rv.interweave $1 $2) @"x0." @"0" @"x.0" @"0" @"x11" @"1")
 ]]
 
 [rv.xor [
-	(replace (replace (replace (rv.interweave $1 $2) @"01x" @"1") @"10x" @"1") [@"." @"." @"x"] @"0")
+	(replace (rv.interweave $1 $2) @"01x" @"1" @"10x" @"1" @"x.." @"0")
 ]]
 
 [rv.init [
 	; registers
 	(set x (repeat 32 00000000))
 	; entry point
-	(set pc 0x1004)
+	(set pc 0x111c)
 	; ra - jump here when _start returns
 	(rv.set_x 1 0xdeadbee0)
 	; sp
 	(rv.set_x 2 0x1000)
 
-	(set mem (zlib.decompress [(rv.init_mem.0)]))
+	(set mem (zlib.decompress [(rv.init_mem.0) (rv.init_mem.1) (rv.init_mem.2) (rv.init_mem.3) (rv.init_mem.4) (rv.init_mem.5)]))
+]]
+
+[rv.save [
+	(int .pc) ","
+	(join "_" [
+		(zlib.compress .x) ","
+		(zlib.compress (slice .mem 0 4096))
+	])
+]]
+
+[rv.load [
+	(set pc (split $1 "," 0))
+	(set x
+		(zlib.decompress
+			(unescape (replace (split $1 "," 1) @"_" @"\/"))
+		)
+	)
+	(set mem
+		(zlib.decompress
+			(unescape (replace (split $1 "," 2) @"_" @"\/"))
+		)
+	)
 ]]
 
 [rv.next [
@@ -87,7 +109,10 @@
 ]]
 
 [rv.log [
-	"\n" (repeat (- 6 (len (hex .pc))) " ") (hex .pc) ":    " .insn_hex "    " $1
+	(printc [
+		(repeat (- 6 (len (hex .pc))) " ")
+		(hex .pc) ":    " .insn_hex "    " $1
+	])
 ]]
 
 [rv.exec [
