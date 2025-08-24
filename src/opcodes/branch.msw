@@ -29,17 +29,17 @@
 		(rv.next)
 	])
 ]]
-	; beq
+	; beq: ==
 	[rv.exec.opcode=24.funct3=0 (== $1 $2)]
-	; bne
+	; bne: !=
 	[rv.exec.opcode=24.funct3=1 (not (== $1 $2))]
-	; blt
+	; blt: <
 	[rv.exec.opcode=24.funct3=4 (< (rv.unbin_s (rv.bin32 $1) 31) (rv.unbin_s (rv.bin32 $2) 31))]
-	; bge
+	; bge: >=
 	[rv.exec.opcode=24.funct3=5 (not (< (rv.unbin_s (rv.bin32 $1) 31) (rv.unbin_s (rv.bin32 $2) 31)))]
-	; bltu
+	; bltu: <u
 	[rv.exec.opcode=24.funct3=6 (< (int $1 2) (int $2 2))]
-	; bgeu
+	; bgeu: >=u
 	[rv.exec.opcode=24.funct3=7 (not (< (int $1 2) (int $2 2)))]
 
 [rv.b_funct3_mnem.0 "eq "]

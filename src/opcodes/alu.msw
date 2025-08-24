@@ -7,7 +7,7 @@
 	(set funct3 (int (rv.slice_bin32 .insn 14 12) 2))
 	(set xd (int (rv.slice_bin32 .insn 11 7) 2))
 
-	([rv.exec.opcode=12.funct3= .funct3])
+	([rv.exec.opcode=12.funct7= .funct7 "." funct3= .funct3])
 	(rv.next)
 ]]
 [rv.exec.opcode=12.log [
@@ -15,15 +15,94 @@
 		$1 " x" .xd ", x" .xs1 ", x" .xs2
 	])
 ]]
-	; add, sub
-	[rv.exec.opcode=12.funct3=0 [
-		(#if debug
-			(rv.exec.opcode=12.log
-				(if (== .funct7 0) "add  " "sub  ")
-			)
+	; add: +
+	[rv.exec.opcode=12.funct7=0.funct3=0 [
+		(#if debug (rv.exec.opcode=12.log "add  "))
+		(rv.set_x .xd (+ (rv.get_x .xs1) (rv.get_x .xs2)))
+	]]
+	; sub: -
+	[rv.exec.opcode=12.funct7=32.funct3=0 [
+		(#if debug (rv.exec.opcode=12.log "sub  "))
+		(rv.set_x .xd (- (rv.get_x .xs1) (rv.get_x .xs2)))
+	]]
+	; mul: *
+	[rv.exec.opcode=12.funct7=1.funct3=0 [
+		(#if debug (rv.exec.opcode=12.log "mul  "))
+		(rv.set_x .xd (* (rv.get_x .xs1) (rv.get_x .xs2)))
+	]]
+	; mulhu: *hu
+	[rv.exec.opcode=12.funct7=1.funct3=3 [
+		(#if debug (rv.exec.opcode=12.log "mulhu"))
+		(rv.set_x .xd
+			(int (/
+				(* (rv.get_x .xs1) (rv.get_x .xs2))
+				4294967296
+			))
 		)
-		(rv.set_x .xd (
-			(if (== .funct7 0) add subtract)
-			(rv.get_x .xs1) (rv.get_x .xs2)
-		))
+	]]
+	; div: /
+	[rv.exec.opcode=12.funct7=1.funct3=4 [
+		(#if debug (rv.exec.opcode=12.log "div  "))
+		(rv.set_x .xd (/ (rv.get_x .xs1) (rv.get_x .xs2)))
+	]]
+	; sltu: <u
+	[rv.exec.opcode=12.funct7=0.funct3=3 [
+		(#if debug (rv.exec.opcode=12.log "sltu "))
+		(rv.set_x .xd
+			(if (< (rv.get_x .xs1) (rv.get_x .xs2)) 1 0)
+		)
+	]]
+	; xor: ^
+	[rv.exec.opcode=12.funct7=0.funct3=4 [
+		(#if debug (rv.exec.opcode=12.log "xor  "))
+		(rv.set_x .xd
+			(int (rv.xor
+				(rv.bin32 (rv.get_x .xs1))
+				(rv.bin32 (rv.get_x .xs2))
+			) 2)
+		)
+	]]
+	; srl: >>
+	[rv.exec.opcode=12.funct7=0.funct3=5 [
+		(#if debug (rv.exec.opcode=12.log "srl  "))
+		(set xs1_bin (rv.bin32 (rv.get_x .xs1)))
+		(set shamt (% (rv.get_x .xs2) 32))
+		(rv.set_x .xd
+			(int [
+				(repeat .shamt 0)
+				(slice .xs1_bin 0 [- .shamt])
+			]	2)
+		)
+	]]
+	; sra: >>>
+	[rv.exec.opcode=12.funct7=32.funct3=5 [
+		(#if debug (rv.exec.opcode=4.log "sra  "))
+		(set xs1_bin (rv.bin32 (rv.get_x .xs1)))
+		(set shamt (% (rv.get_x .xs2) 32))
+		(rv.set_x .xd
+			(int [
+				(repeat .shamt (slice .xs1_bin 0 1))
+				(slice .xs1_bin 0 [- .shamt])
+			]	2)
+		)
+	]]
+	; or: |
+	[rv.exec.opcode=12.funct7=0.funct3=6 [
+		(#if debug (rv.exec.opcode=12.log "or   "))
+		(rv.set_x .xd
+			(int (rv.or
+				(rv.bin32 (rv.get_x .xs1))
+				(rv.bin32 (rv.get_x .xs2))
+			) 2)
+		)
+	]]
+	; and: &
+	[rv.exec.opcode=12.funct7=0.funct3=7 [
+		(#if debug (rv.exec.opcode=12.log "and  "))
+		(rv.set_x .xd
+			(int (rv.and
+				(rv.bin32 (rv.get_x .xs1))
+				(rv.bin32 (rv.get_x .xs2))
+			) 2)
+		)
 	]]

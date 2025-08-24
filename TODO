@@ -1,5 +1,5 @@
 [x] lui
-[ ] auipc
+[x] auipc
 [x] jal
 [x] jalr
 [x] beq
@@ -27,19 +27,19 @@
 [ ] sll
 [ ] slt
 [ ] sltu
-[ ] xor
-[ ] srl
-[ ] sra
-[ ] or
-[ ] and
+[x] xor
+[x] srl
+[x] sra
+[x] or
+[x] and
 [ ] fence
-[ ] ecall
-[ ] ebreak
-[ ] mul
+[x] ecall
+[x] ebreak
+[x] mul
 [ ] mulh
 [ ] mulhsu
-[ ] mulhu
-[ ] div
+[x] mulhu
+[x] div
 [ ] divu
 [ ] rem
 [ ] remu

@@ -1,15 +1,3 @@
-; you will need to be familiar with the RISC-V ISA or at least something else that's similar to understand this.
-; you have been warned.
-;
-; ## overview
-;
-; the basic flow of the program is as follows:
-;
-; - rv.init initializes the registers ('x'), PC and memory.
-; - rv.exec takes a memory state, executes the next instruction and returns a new memory state.
-;
-; see registers.msw and memory.msw for more detail.
-
 #out_json
 
 (#set debug)
@@ -20,7 +8,6 @@
 (#include_merge "registers.msw")
 (#include_merge "memory.msw")
 (#include_merge "init_mem.msw")
-
 
 [rv.swap [
 	(replace $1 @"^(..)$|^(..)(..)$|^(..)(..)(..)(..)$" @"\g<1>\g<3>\g<2>\g<7>\g<6>\g<5>\g<4>")
@@ -73,13 +60,17 @@
 	; registers
 	(set x (repeat 32 00000000))
 	; entry point
-	(set pc 0x111c)
+	(set pc 0x1098)
 	; ra - jump here when _start returns
 	(rv.set_x 1 0xdeadbee0)
 	; sp
 	(rv.set_x 2 0x1000)
 
-	(set mem (zlib.decompress [(rv.init_mem.0) (rv.init_mem.1) (rv.init_mem.2) (rv.init_mem.3) (rv.init_mem.4) (rv.init_mem.5)]))
+	(set mem.0 (zlib.decompress (rv.init_mem.0)))
+	(set mem.1 (zlib.decompress (rv.init_mem.1)))
+	(set mem.2 (zlib.decompress (rv.init_mem.2)))
+
+	(set cache_hist "")
 ]]
 
 [rv.save [
@@ -120,7 +111,7 @@
 ]]
 	[rv.exec.halt=true [
 		(#if debug [
-			"\nprogram jumped to 0xdeadbee0 - halt"
+			(printc "program jumped to 0xdeadbee0 - halt")
 		])
 	]]
 	[rv.exec.halt=false [
@@ -129,3 +120,10 @@
 		([rv.exec.opcode= (int (rv.slice_bin32 .insn 6 2) 2)])
 	]]
 		(#include_merge "opcodes/*.msw")
+
+[rv.exec_until [
+	,(if (== (int .pc) $1) [] '[
+		(rv.exec)
+		(rv.exec_until $1)
+	])
+]]

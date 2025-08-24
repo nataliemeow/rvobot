@@ -26,10 +26,11 @@
 ;  x1: 0x00000000  0
 ;  x2: 0x00100000  1048576
 ;  x3: 0x00000000  0
-; ...
+; (oh. and pc too for good measure)
 [rv.dump_x [
 	(set i 1)
 	,(repeat 31 '(rv.dump_x.loop))
+	" pc: 0x" (rv.hex .pc 4) "  " (int .pc) "\n"
 ]]
 
 [rv.dump_x.loop [

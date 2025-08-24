@@ -15,7 +15,7 @@
 		$1 " x" .xd ", x" .xs1 ", " (hex (rv.unbin_s .imm 11))
 	])
 ]]
-	; addi
+	; addi: +
 	[rv.exec.opcode=4.funct3=0 [
 		(#if debug (rv.exec.opcode=4.log "addi "))
 		(rv.set_x .xd (+
@@ -23,7 +23,18 @@
 			(rv.unbin_s .imm 11)
 		))
 	]]
-	; slti
+	; slli: <<
+	[rv.exec.opcode=4.funct3=1 [
+		(#if debug (rv.exec.opcode=4.log "slli "))
+		; funct7 is always 0 in slli, just use imm directly
+		(rv.set_x .xd
+			(int [
+				(slice (rv.bin32 (rv.get_x .xs1)) (int .imm 2))
+				(repeat (int (slice .imm 7) 2) 0)
+			]	2)
+		)
+	]]
+	; slti: <
 	[rv.exec.opcode=4.funct3=2 [
 		(#if debug (rv.exec.opcode=4.log "slti "))
 		(rv.set_x .xd
@@ -33,14 +44,14 @@
 			) 1 0)
 		)
 	]]
-	; sltiu
+	; sltiu: <u
 	[rv.exec.opcode=4.funct3=3 [
 		(#if debug (rv.exec.opcode=4.log "sltiu"))
 		(rv.set_x .xd
-			(if (less (rv.get_x .xs1) (int .imm 2)) 1 0)
+			(if (< (rv.get_x .xs1) (int .imm 2)) 1 0)
 		)
 	]]
-	; xori
+	; xori: ^
 	[rv.exec.opcode=4.funct3=4 [
 		(#if debug (rv.exec.opcode=4.log "xori "))
 		(rv.set_x .xd
@@ -50,7 +61,26 @@
 			) 2)
 		)
 	]]
-	; ori
+	; srli: >>, srai: >>>
+	[rv.exec.opcode=4.funct3=5 [
+		(set arith (== (slice .imm 1 2) 1))
+		(set shamt (int (slice .imm 7) 2))
+		(#if debug
+			(rv.exec.opcode=4.log
+				(if .arith "srai " "srli ")
+			)
+		)
+		(set xs1_bin (rv.bin32 (rv.get_x .xs1)))
+		(rv.set_x .xd
+			(int [
+				(repeat .shamt
+					(if .arith (slice .xs1_bin 0 1) 0)
+				)
+				(slice .xs1_bin 0 [- .shamt])
+			]	2)
+		)
+	]]
+	; ori: |
 	[rv.exec.opcode=4.funct3=6 [
 		(#if debug (rv.exec.opcode=4.log "ori  "))
 		(rv.set_x .xd
@@ -60,7 +90,7 @@
 			) 2)
 		)
 	]]
-	; andi
+	; andi: &
 	[rv.exec.opcode=4.funct3=7 [
 		(#if debug (rv.exec.opcode=4.log "andi "))
 		(rv.set_x .xd

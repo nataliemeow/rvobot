@@ -3,20 +3,86 @@
 ; $3: new value
 
 [rv.mem_get_raw [
-	(rv.swap (slice .mem (* $1 2) (* (+ $1 $2) 2)))
+	(set cache_i (int (/ $1 64)))
+	([
+		rv.mem_get_raw.cache=
+		(is_stored [cache. .cache_i])
+	])
+
+	(set local_addr (% $1 64))
+	(rv.swap (slice
+		(get [cache. .cache_i])
+		(* .local_addr 2)
+		(* (+ .local_addr $2) 2)
+	))
 ]]
+	[rv.mem_get_raw.cache=false [
+		(set cache_local_addr_in_page_2 (% (* .cache_i 128) 65536))
+		(set [cache. .cache_i]
+			(slice
+				(get [mem. (int (/ .cache_i 65536))])
+				.cache_local_addr_in_page_2
+				(+ .cache_local_addr_in_page_2 128)
+			)
+		)
+		(set cache_hist [.cache_hist "," .cache_i])
+
+		,(if (== (count .cache_hist ",") 128) '[
+			(set dead_cache_i (split .cache_hist "," 0))
+			(set dead_cache_page (int (/ (* .dead_cache_i 128) 65536)))
+			(set dead_cache_local_addr_in_page_2 (% (* .dead_cache_i 128) 65536))
+			(set [mem. .dead_cache_page] [
+				(slice (get [mem. .dead_cache_page]) .dead_cache_local_addr_in_page_2)
+				(get [cache. .dead_cache_i])
+				(slice (get [mem. .dead_cache_page]) (+ .dead_cache_local_addr_in_page_2 128))
+			])
+			(set cache_hist (ureplace .cache_hist @"^\[^,\]*" @""))
+		] [])
+	]]
+	[rv.mem_get_raw.cache=true []]
 
 [rv.mem_get [
 	(int (rv.mem_get_raw $1 $2) 16)
 ]]
 
 [rv.mem_set_raw [
-	(set mem [
-		(slice .mem 0 (* $1 2))
+	(set cache_i (int (/ $1 64)))
+	([
+		rv.mem_set_raw.cache=
+		(is_stored [cache. .cache_i])
+	])
+
+	(set local_addr_in_cache (% $1 64))
+	(set [cache. .cache_i] [
+		(slice (get [cache. .cache_i]) 0 (* .local_addr_in_cache 2))
 		(rv.swap $3)
-		(slice .mem (* (+ $1 $2) 2))
+		(slice (get [cache. .cache_i]) (* (+ .local_addr_in_cache $2) 2))
 	])
 ]]
+	[rv.mem_set_raw.cache=false [
+		(set cache_local_addr_in_page_2 (% (* .cache_i 128) 65536))
+		(set [cache. .cache_i]
+			(slice
+				(get [mem. (int (/ .cache_i 65536))])
+				.cache_local_addr_in_page_2
+				(+ .cache_local_addr_in_page_2 128)
+			)
+		)
+		(set cache_hist [.cache_hist "," .cache_i])
+
+		,(if (== (count .cache_hist ",") 128) '[
+			(set dead_cache_i (split .cache_hist "," 0))
+			(set dead_cache_page (int (/ (* .dead_cache_i 128) 65536)))
+			(set dead_cache_local_addr_in_page_2 (% (* .dead_cache_i 128) 65536))
+			(set [mem. .dead_cache_page] [
+				(slice (get [mem. .dead_cache_page]) .dead_cache_local_addr_in_page_2)
+				(get [cache. .dead_cache_i])
+				(slice (get [mem. .dead_cache_page]) (+ .dead_cache_local_addr_in_page_2 128))
+			])
+			(set cache_hist (ureplace .cache_hist @"^\[^,\]*" @""))
+		] [])
+	]]
+	[rv.mem_set_raw.cache=true []]
 
 [rv.mem_set [
 	(rv.mem_set_raw $1 $2 (rv.hex $3 $2))
@@ -26,11 +92,23 @@
 	(set addr $1)
 	,(repeat $2 '(rv.mem_get_str.loop))
 ]]
+	[rv.mem_get_str.loop [
+		(set char (rv.mem_get .addr 1))
+		,(if (== .char 0) [] '[
+			(chr .char) 
+			(set addr (+ .addr 1))
+		])
+	]]
 
-[rv.mem_get_str.loop [
-	(set char (rv.mem_get .addr 1))
-	,(if (== .char 0) [] '[
-		(chr .char) 
-		(set addr (+ .addr 1))
-	])
+[rv.mem_dump [
+	(set addr $1)
+	,(repeat (/ $2 16) '(rv.mem_dump.loop))
 ]]
+	[rv.mem_dump.loop [
+		"0x" (rv.hex .addr 2) ":    "
+		"0x" (rv.mem_get_raw .addr 4) "    "
+		"0x" (rv.mem_get_raw (+ .addr 4) 4) "    "
+		"0x" (rv.mem_get_raw (+ .addr 8) 4) "    "
+		"0x" (rv.mem_get_raw (+ .addr 12) 4) "    \n"
+		(set addr (+ .addr 16))
+	]]

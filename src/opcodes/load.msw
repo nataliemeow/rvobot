@@ -14,7 +14,7 @@
 
 	(rv.set_x .xd (rv.mem_get
 		(+ (rv.get_x .xs1) .imm)
-		.size
+		([rv.sl_funct3_size. .funct3])
 	))
 	(rv.next)
 ]]
