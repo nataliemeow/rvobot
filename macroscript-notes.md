@@ -14,7 +14,7 @@ Hello World
 
 MS is a very simple language. (whether it is *easy* is debatable.) the 4 primary constructs in MacroScript (in my categorization anyway) are:
 
-- **strings:** just strings.
+- **strings:** just strings. whitespace is not ignored.
 - **function calls:** of the form `[name/argument/...]`.
 - **escaped strings:** strings with all `[`, `/`, `]` and `\` characters prefixed with `\`. this causes MacroScript to not evaluate these until they are unescaped.
 - **unescapes:** of the form `[unescape/str]`. causes an escaped string to be evaluated on demand. actually a built-in function but it's significant enough for me to consider as something different.
